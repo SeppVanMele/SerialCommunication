@@ -237,6 +237,7 @@ namespace SerialCommunication
         {
             timerOefening3.Enabled = tabControl.SelectedIndex == 3;
             timerOefening4.Enabled = tabControl.SelectedIndex == 4;
+            timerOefening5.Enabled = tabControl.SelectedIndex == 5;
         }
 
         private void timerOefening3_Tick(object sender, EventArgs e)
@@ -292,6 +293,51 @@ namespace SerialCommunication
 
                     int value = Int32.Parse(antwoord);
                     labelAnalog0.Text = value.ToString();
+                }
+            }
+            catch (Exception exception)
+            {
+                labelStatus.Text = "Error:" + exception.Message;
+                serialPortArduino.Close();
+                radioButtonVerbonden.Checked = false;
+                buttonConnect.Text = "Connect";
+            }
+        }
+
+        private void timerOefening5_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                if (serialPortArduino.IsOpen)
+                {
+                    serialPortArduino.ReadExisting();
+
+                    string commando = "get a0"; // gewenste temperatuur
+                    serialPortArduino.WriteLine(commando);
+                    string antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord = antwoord.Substring(4);
+                    int waardeA0 = Int32.Parse(antwoord);
+                    double gewensteTemperatuur = (40.0 / 1023.0) * waardeA0 + 5;
+                    labelGewensteTemp.Text = gewensteTemperatuur.ToString("0.0") + " °C";
+
+                    commando = "get a1"; //LM35
+                    serialPortArduino.WriteLine(commando);
+                    antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord = antwoord.Substring(4);
+                    int waardeA1 = Int32.Parse(antwoord);
+                    double huidigeTemperatuur = (500.0 / 1023.0) * waardeA1;
+                    labelHuidigeTemp.Text = huidigeTemperatuur.ToString("0.0") + " °C";
+
+                    if (huidigeTemperatuur < gewensteTemperatuur)
+                    {
+                        serialPortArduino.WriteLine("set d2 high");
+                    }
+                    else
+                    {
+                        serialPortArduino.WriteLine("set d2 low");
+                    }
                 }
             }
             catch (Exception exception)
